@@ -1,33 +1,29 @@
 # Backend Application
 
-The backend application is built using [Quart](https://quart.palletsprojects.com/), a Python framework for asynchronous web applications. The backend code is stored in the `app/backend` folder.
+## Overview
+This document provides an overview of the backend application, including its requirements, setup, and usage.
 
-## Getting Started
+## Requirements
+The backend application has several dependencies that are listed in the `requirements.txt` file. Here are some of the key dependencies:
 
-To start the backend application, you can use the `start.ps1` script located in the `app` directory. This script installs the necessary Python and npm packages and starts the backend server.
+- `aiofiles==23.2.1`: For asynchronous file handling.
+- `aiohttp==3.9.5`: For making HTTP requests in a non-blocking way.
+- `azure-ai-documentintelligence==1.0.0b3`: For AI document intelligence services from Azure.
+- `azure-cognitiveservices-speech==1.37.0`: For speech services from Azure Cognitive Services.
+- `flask==3.0.3`: A lightweight web application framework.
+- `numpy==1.26.4`: A library for the Python programming language, adding support for large, multi-dimensional arrays and matrices, along with a large collection of high-level mathematical functions to operate on these arrays.
+- `openai[datalib]==1.31.0`: For interacting with the OpenAI API.
 
-## Directory Structure
+Please refer to the `requirements.txt` file for the complete list of dependencies.
 
-- `approaches/`: Contains the classes powering the Chat and Ask tabs. Each class uses a different RAG (Retrieval Augmented Generation) approach.
-- `prepdocs.py`: Sets up file processors for different file types.
+## Setup
+Provide instructions on how to set up the backend application.
 
-## Key Files
+## Usage
+Provide instructions on how to use the backend application.
 
-- `approach.py`: Defines the `Approach` abstract base class and the `Document` and `ThoughtStep` data classes.
-- `prepdocs.py`: Defines the `setup_file_processors` function, which sets up file processors for different file types.
+## Contributing
+Provide instructions on how to contribute to the backend application.
 
-## Running the Application
-
-To run the backend application, navigate to the `app/backend` directory and run the following command:
-
-```sh
-python3 -m gunicorn main:app
-
-Customization
-You can customize the backend application by modifying the classes in the approaches directory. For more information on customization, see the customization guide.
-
-Contributing
-Please see the CONTRIBUTING.md file for details on how to contribute to the backend application.
-
-License
-This project is licensed under the terms of the license provided in the LICENSE file.
+## License
+Provide information about the license.
