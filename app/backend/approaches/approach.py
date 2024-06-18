@@ -1,6 +1,14 @@
 import os
 from abc import ABC
 from dataclasses import dataclass
+from urllib.parse import urljoin
+import aiohttp
+from azure.search.documents.aio import SearchClient
+from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
+from core.authentication import AuthenticationHelper
+from text import nonewlines
+
 from typing import (
     Any,
     AsyncGenerator,
@@ -11,25 +19,22 @@ from typing import (
     TypedDict,
     cast,
 )
-from urllib.parse import urljoin
 
-import aiohttp
-from azure.search.documents.aio import SearchClient
 from azure.search.documents.models import (
     QueryCaptionResult,
     QueryType,
     VectorizedQuery,
     VectorQuery,
 )
-from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionMessageParam
 
-from core.authentication import AuthenticationHelper
-from text import nonewlines
 
 
 @dataclass
 class Document:
+    """
+    Represents a document with various properties.
+    """
+
     id: Optional[str]
     content: Optional[str]
     embedding: Optional[List[float]]
@@ -44,6 +49,9 @@ class Document:
     reranker_score: Optional[float] = None
 
     def serialize_for_results(self) -> dict[str, Any]:
+        """
+        Serializes the document object for results.
+        """
         return {
             "id": self.id,
             "content": self.content,
@@ -72,10 +80,12 @@ class Document:
 
     @classmethod
     def trim_embedding(cls, embedding: Optional[List[float]]) -> Optional[str]:
-        """Returns a trimmed list of floats from the vector embedding."""
+        """
+        Returns a trimmed list of floats from the vector embedding.
+        """
         if embedding:
             if len(embedding) > 2:
-                # Format the embedding list to show the first 2 items followed by the count of the remaining items."""
+                # Format the embedding list to show the first 2 items followed by the count of the remaining items.
                 return f"[{embedding[0]}, {embedding[1]} ...+{len(embedding) - 2} more]"
             else:
                 return str(embedding)
@@ -85,12 +95,20 @@ class Document:
 
 @dataclass
 class ThoughtStep:
+    """
+    Represents a step in a thought process.
+    """
+
     title: str
     description: Optional[Any]
     props: Optional[dict[str, Any]] = None
 
 
 class Approach(ABC):
+    """
+    Abstract base class for different approaches.
+    """
+
     def __init__(
         self,
         search_client: SearchClient,
@@ -98,7 +116,7 @@ class Approach(ABC):
         auth_helper: AuthenticationHelper,
         query_language: Optional[str],
         query_speller: Optional[str],
-        embedding_deployment: Optional[str],  # Not needed for non-Azure OpenAI or for retrieval_mode="text"
+        embedding_deployment: Optional[str],
         embedding_model: str,
         embedding_dimensions: int,
         openai_host: str,
@@ -118,6 +136,9 @@ class Approach(ABC):
         self.vision_token_provider = vision_token_provider
 
     def build_filter(self, overrides: dict[str, Any], auth_claims: dict[str, Any]) -> Optional[str]:
+        """
+        Builds a filter based on overrides and authentication claims.
+        """
         exclude_category = overrides.get("exclude_category")
         security_filter = self.auth_helper.build_security_filters(overrides, auth_claims)
         filters = []
@@ -138,7 +159,9 @@ class Approach(ABC):
         minimum_search_score: Optional[float],
         minimum_reranker_score: Optional[float],
     ) -> List[Document]:
-        # Use semantic ranker if requested and if retrieval mode is text or hybrid (vectors + text)
+        """
+        Performs a search operation.
+        """
         if use_semantic_ranker and query_text:
             results = await self.search_client.search(
                 search_text=query_text,
@@ -190,6 +213,9 @@ class Approach(ABC):
     def get_sources_content(
         self, results: List[Document], use_semantic_captions: bool, use_image_citation: bool
     ) -> list[str]:
+        """
+        Retrieves the content of the sources.
+        """
         if use_semantic_captions:
             return [
                 (self.get_citation((doc.sourcepage or ""), use_image_citation))
@@ -204,6 +230,9 @@ class Approach(ABC):
             ]
 
     def get_citation(self, sourcepage: str, use_image_citation: bool) -> str:
+        """
+        Retrieves the citation for a source.
+        """
         if use_image_citation:
             return sourcepage
         else:
@@ -216,6 +245,9 @@ class Approach(ABC):
             return sourcepage
 
     async def compute_text_embedding(self, q: str):
+        """
+        Computes the text embedding using OpenAI.
+        """
         SUPPORTED_DIMENSIONS_MODEL = {
             "text-embedding-ada-002": False,
             "text-embedding-3-small": True,
@@ -229,7 +261,6 @@ class Approach(ABC):
             {"dimensions": self.embedding_dimensions} if SUPPORTED_DIMENSIONS_MODEL[self.embedding_model] else {}
         )
         embedding = await self.openai_client.embeddings.create(
-            # Azure OpenAI takes the deployment name as the model name
             model=self.embedding_deployment if self.embedding_deployment else self.embedding_model,
             input=q,
             **dimensions_args,
@@ -238,6 +269,9 @@ class Approach(ABC):
         return VectorizedQuery(vector=query_vector, k_nearest_neighbors=50, fields="embedding")
 
     async def compute_image_embedding(self, q: str):
+        """
+        Computes the image embedding using the Vision API.
+        """
         endpoint = urljoin(self.vision_endpoint, "computervision/retrieval:vectorizeText")
         headers = {"Content-Type": "application/json"}
         params = {"api-version": "2023-02-01-preview", "modelVersion": "latest"}
@@ -259,6 +293,9 @@ class Approach(ABC):
         session_state: Any = None,
         context: dict[str, Any] = {},
     ) -> dict[str, Any]:
+        """
+        Runs the approach with the given messages.
+        """
         raise NotImplementedError
 
     async def run_stream(
@@ -267,4 +304,7 @@ class Approach(ABC):
         session_state: Any = None,
         context: dict[str, Any] = {},
     ) -> AsyncGenerator[dict[str, Any], None]:
+        """
+        Runs the approach in a streaming fashion with the given messages.
+        """
         raise NotImplementedError
